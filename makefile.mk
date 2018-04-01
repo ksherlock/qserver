@@ -3,7 +3,7 @@
 
 CFLAGS	+=  $(DEFINES) -v #-O
 LDLIBS += -l /usr/local/lib/libk
-OBJS	= qserver.o macroman.o common.o marinetti.o config.o
+OBJS	= qserver.o macroman.o common.o config.o
 CFLAGS += -I /usr/local/include/
 
 qserver: $(OBJS)  qserver.r

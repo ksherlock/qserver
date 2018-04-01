@@ -81,7 +81,7 @@ void fixstats(void)
 static char stats[16];
 Word i;
 
-  i = ksprintf(stats + 1, "%d : %d", current, total);
+  i = ksprintf(stats + 1, "%D : %D", current, total);
   stats[0] = i; // pascal string
 
   SetInfoRefCon((LongWord)stats, MyWindow);
@@ -119,7 +119,8 @@ enum
 	STATE_NULL = 0,
 	STATE_ESTABLISH,	// waiting to establish
 	STATE_QUOTE,		// send the quote...
-	STATE_SEND		// waiting for data to send
+	STATE_SEND,		// waiting for data to send
+	STATE_CLOSE
 };
 
 void QServer(void)
@@ -139,6 +140,25 @@ int i;
 		if (!ipid) continue;
 
 		TCPIPStatusTCP(ipid, &srBuffer);
+		if (_toolErr)
+		{
+			queue[i].ipid = 0;
+			queue[i].state = 0;
+			current--;
+			delta = true;
+			continue;
+		}
+
+		if (srBuffer.srState == TCPSCLOSED)
+		{
+			TCPIPLogout(ipid);
+			queue[i].ipid = 0;
+			queue[i].state = 0;
+			current--;
+			delta = true;
+			continue;
+		}                                  
+
 
 		switch (queue[i].state)
 		{
@@ -173,14 +193,10 @@ int i;
 
 			if (srBuffer.srSndQueued == 0)
 			{
-				queue[i].ipid = 0;
-				queue[i].state = 0;
 				TCPIPCloseTCP(ipid);
-				current--;
-				delta = true;
+				queue[i].state = STATE_CLOSE;
 			}
 			break;
-
 		}
 	}
 
@@ -218,7 +234,7 @@ int i;
 				TCPIPConvertIPToASCII(srBuffer.srDestIP,
 					buffer, 0);
 
-				j = ksprintf(line, "%p:%d\r",
+				j = ksprintf(line, "%p:%D\r",
 				  buffer, srBuffer.srDestPort);
 				
 				InsertString(j, line);
@@ -293,6 +309,8 @@ static char err[256];
 
 	fixstats();
 	HUnlock(rPath);
+
+	InsertString(16, "QServer started\r");
 	return true;
 
 }
@@ -309,7 +327,8 @@ int i;
 		ipid = queue[i].ipid;
 		if (ipid)
 		{
-			TCPIPCloseTCP(ipid);
+			TCPIPAbortTCP(ipid);
+			TCPIPLogout(ipid);
 			queue[i].ipid = 0;
 		}
 	}
@@ -326,8 +345,10 @@ int i;
 	CloseResourceFile(rFile);
 
 
-    SetInfoRefCon((LongWord)"\pQuote Server stopped", MyWindow);
+    SetInfoRefCon((LongWord)"\pServer stopped", MyWindow);
     DrawInfoBar(MyWindow);
+
+    InsertString(16, "QServer stopped\r");
 
 	return true;
 }
@@ -407,6 +428,7 @@ pascal void MarinettiCallback(char *str)
     DrawInfoBar(MyWindow);
   }
 }
+#pragma databank 0
 
 pascal void DrawInfo(void *rect, const char *str, GrafPortPtr w)
 {
@@ -425,49 +447,119 @@ void DrawWindow(void)
 }
 
 // returns 1 on success, 0 on error.
-Word LoadNDATools(void)
+Word LoadNDATools(Word MyID)
 {
   if (!QDAuxStatus() || _toolErr)
   {
     LoadOneTool(0x12,0);
-    if (_toolErr) return 0;
-    QDAuxStartUp();
+    if (!_toolErr) QDAuxStartUp();
+    if (_toolErr)
+    {
+      AlertWindow(awCString, NULL,
+        (Ref)"24~Unable to start QuickDraw Aux.~^Too Bad");
+      return 0;
+    }
     FlagQDAux = true;
   }
+
   if (!FMStatus() || _toolErr)
   {
     Handle h;
     LoadOneTool(0x1b, 0);
-    if (_toolErr) return 0;
-    HandleFM = NewHandle(MyID, 0x0100, 0xc005, 0);
-    if (_toolErr) return 0;
-    FMStartUp(MyID, (Word)*HandleFM);
+    if (!_toolErr) HandleFM = NewHandle(0x0100, MyID, 0xc005, 0);
+    if (!_toolErr) FMStartUp(MyID, (Word)*HandleFM);
+    if (_toolErr)
+    {
+      if (HandleFM) DisposeHandle(HandleFM);
+
+      AlertWindow(awCString, NULL,
+        (Ref)"24~Unable to start Font Manager.~^Too Bad");
+      return 0;
+    }
     FlagFM = true;
   }
+
   if (!TEStatus() || _toolErr)
   {
     LoadOneTool(0x22,0x0);
-    if (_toolErr) return 0;
-    HandleTE = NewHandle(MyID, 0x0100, 0xc005, 0);
-    if (_toolErr) return 0;
-    TEStartUp(MyID, (Word)*HandleTE);
-    FlagTE = true;
+    if (!_toolErr) HandleTE = NewHandle(0x0100, MyID, 0xc005, 0);
+    if (!_toolErr) TEStartUp(MyID, (Word)*HandleTE);
+    if (_toolErr)
+    {
+      if (HandleTE) DisposeHandle(HandleTE);
+
+      AlertWindow(awCString, NULL,
+        (Ref)"24~Unable to start Text Edit.~^Too Bad");
+      return 0;
+    }
+    FlagTE = true; 
   }
+
   if (!SFStatus() || _toolErr)
   {
     LoadOneTool(0x17,0);
-    if (_toolErr) return 0;
-    HandleSF = NewHandle(MyID, 0x0100, 0xc005, 0);
-    if (_toolErr) return 0;
-    SFStartUp(MyID, (Word)*HandleSF);
-    FlagSF = true;
+    if (!_toolErr) HandleSF = NewHandle(0x0100, MyID, 0xc005, 0);
+    if (!_toolErr) SFStartUp(MyID, (Word)*HandleSF);
+    if (_toolErr)
+    {
+      if (HandleSF) DisposeHandle(HandleSF);
+
+      AlertWindow(awCString, NULL,        
+        (Ref)"24~Unable to start Standard Filer.~^Too Bad");
+      return 0;
+    }
+    FlagSF = true; 
   }
 
-
-
+  if (!TCPIPStatus() || _toolErr)
+  {
+    LoadOneTool(0x36,0x0200);
+    if (!_toolErr) TCPIPStartUp();
+    if (_toolErr)
+    {
+      AlertWindow(awCString, NULL,
+        (Ref)"24~Unable to start Marinetti.~^Too Bad");
+      return 0;
+    }
+    FlagLoadTCP = true;
+  }
+  return 1;
 }
 
-#pragma databank 0
+void UnloadNDATools(void)
+{
+  if (FlagLoadTCP && !TCPIPGetConnectStatus())
+  {
+    TCPIPShutDown();
+    UnloadOneTool(0x36);
+  }
+  if (FlagSF)
+  {
+    SFShutDown();
+    UnloadOneTool(0x17);
+    DisposeHandle(HandleSF);
+  }
+  if (FlagTE)
+  {
+    TEShutDown();
+    UnloadOneTool(0x22);
+    DisposeHandle(HandleTE);
+  }
+  if (FlagFM)
+  {
+    FMShutDown();
+    UnloadOneTool(0x1b);
+    DisposeHandle(HandleFM);
+  }
+  if (FlagQDAux)
+  {
+    QDAuxShutDown();
+    UnloadOneTool(0x12);
+  }
+}
+
+
+
 
 
 GrafPortPtr NDAOpen(void)
@@ -475,19 +567,12 @@ GrafPortPtr NDAOpen(void)
 Boolean ok  = true;
 const char *err = NULL;
 
-  if (!LoadNDATools())
-  {
-    AlertWindow(awCString, NULL,
-      (Ref)"24~Unable to load required tools.~^Too Bad");
-    return NULL;
-  }
+  if (!LoadNDATools(MyID)) return NULL;
 
   LoadConfig(MyID);
 
   // Check if Marinetti Active.
-  if (!TCPIPStatus() || _toolErr)
-    FlagTCP = false;
-  else FlagTCP = TCPIPGetConnectStatus();
+  FlagTCP = TCPIPGetConnectStatus();
 
 
   if (ok)
@@ -585,35 +670,7 @@ void NDAInit(Word code)
   }
   else
   {
-    if (FlagLoadTCP && !TCPIPGetConnectStatus())
-    {
-      TCPIPShutDown();
-      UnloadOneTool(0x36);
-    }
-    if (FlagTE)
-    {
-      TEShutDown();
-      UnloadOneTool(0x22);
-      DisposeHandle(HandleTE);
-    }
-    if (FlagFM)
-    {
-      FMShutDown();
-      UnloadOneTool(0x1b);
-      DisposeHandle(HandleFM);
-    }
-    if (FlagQDAux)
-    {
-      QDAuxShutDown();
-      UnloadOneTool(0x12);
-    }
-    if (FlagSF)
-    {
-      SFShutDown();
-      UnloadOneTool(0x17);
-      DisposeHandle(HandleSF);
-    }
-
+    UnloadNDATools();
   }
 }
 
@@ -648,13 +705,6 @@ static word counter = 0;
       /* start marinetti */
       case CtrlStartM:
         //
-        // 1 load marinetti if need be.
-        if (!TCPIPStatus() || _toolErr)
-        {
-          LoadOneTool(0x36,0x0200);
-          TCPIPStartUp();
-          FlagLoadTCP = true;
-        }
         if (TCPIPGetConnectStatus())
         {
           FlagTCP = true;
