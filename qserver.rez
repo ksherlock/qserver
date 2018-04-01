@@ -1,0 +1,396 @@
+#include "Types.rez"
+#include "qserver.h"
+
+
+//#define	WaitCodeRID		0x00700000
+//read rCtlDefProc (WaitCodeRID, fixed, convert) "waitctrl";
+
+
+resource rControlList (rQSWindow) {
+	{
+		CtrlStartM,
+		CtrlStopM,
+		CtrlStartQS,
+		CtrlStopQS,
+		CtrlTE,
+		CtrlLogo,
+		CtrlConfig,
+	}
+};
+
+
+
+resource rControlTemplate (CtrlTE) {
+	CtrlTE,
+	{55, -2, 131, 281},
+	editTextControl {
+		 {	/* optional Fields */
+			0x0,
+			0x7400,
+			0x0,
+			fSingleStyle
+			+ fReadOnly + fTabSwitch + fSmartCutPaste
+			+ fDrawBounds, //0x27A80000,
+			{-1, -1, -1, -1},
+			0xFFFFFFFF,
+			0,
+			0x0,
+			0,
+			0x0,
+			0x15,
+			CtrlTE,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0x0,
+			0x0,
+			0x0
+		}
+	}
+};
+
+resource rControlTemplate (CtrlStartM) {
+	CtrlStartM,
+	{4, 10, 17, 100},
+	SimpleButtonControl {
+		 {	/* optional Fields */
+			SquareButton,
+			0x1002,
+			0x0,
+			CtrlStartM
+		}
+	}
+};
+
+resource rControlTemplate (CtrlStopM) {
+	CtrlStopM,
+	{4, 180, 17, 270},
+	SimpleButtonControl {
+		 {	/* optional Fields */
+			SquareButton,
+			0x1002,
+			0x0,
+			CtrlStopM
+		}
+	}
+};
+
+//
+
+resource rControlTemplate (CtrlStartQS) {
+	CtrlStartQS,
+	{21, 10, 34, 100},
+	SimpleButtonControl {
+		 {	/* optional Fields */
+			SquareButton,
+			0x1002,
+			0x0,
+			CtrlStartQS
+		}
+	}
+};
+
+resource rControlTemplate (CtrlStopQS) {
+	CtrlStopQS,
+	{21, 180, 34, 270},
+	SimpleButtonControl {
+		 {	/* optional Fields */
+			SquareButton,
+			0x1002,
+			0x0,
+			CtrlStopQS
+		}
+	}
+};
+
+resource rControlTemplate (CtrlConfig) {
+	CtrlConfig,
+	{38, 90, 51, 190},
+	SimpleButtonControl {
+		 {	/* optional Fields */
+			SquareButton,
+			0x1002,
+			0x0,
+			CtrlConfig
+		}
+	}
+};
+
+
+
+resource rControlTemplate (CtrlLogo, nocrossbank)
+{
+	CtrlLogo,
+	{14, 130, 24, 150 },
+	IconButtonControl {{
+		$000C,
+		$1020,
+		0,
+		1,	// icon id #
+		0,
+		0,
+		0,
+		{ "", "", 0, 0}
+	}};
+};
+
+resource rPString (CtrlStopM) {
+	"Disconnect"
+};
+
+resource rPString (CtrlStartM) {
+	"Connect"
+};
+
+resource rPString (CtrlStartQS) {
+	"Start"
+};
+
+resource rPString (CtrlStopQS) {
+	"Stop"
+};
+
+resource rPString (CtrlConfig) {
+	"Config"
+};
+
+resource rPString (rQSWindow) {
+	"  Quote Server  "
+};
+
+
+
+resource rWindParam1 (rQSWindow) {
+	fClose + fTitle + fMove + fInfo,	//0xC0B0,
+	rQSWindow,
+	0x0,
+	{0, 0, 0, 0},
+	rQSWindow,		// rWindColor
+	{0, 0},
+	{0, 0},
+	{0, 0},
+	{0, 0},
+	{0, 0},
+	0x0,
+	13,
+	{50, 40, 180, 320},
+	infront,
+	rQSWindow,		// rControlList
+	0xA09
+};
+
+resource rWindColor (rQSWindow) {
+	0x0,
+	0xF01,
+	0x21F,
+	0xF0FF,
+	0xF0
+};
+
+
+resource rText (CtrlTE) {
+	""
+};
+
+resource rComment (1) {
+	"Quote Server NDA\n\n"
+	"Written by Kelvin W Sherlock\n"
+	"November/December 2004."
+};
+
+resource rVersion (1) {
+	{
+		1,
+		0,
+		0,
+		release,
+		0
+	},
+	verUS,
+	"Quote Server",
+	"(C) 2004 Kelvin Sherlock "
+        "kws@a2central.com"
+};
+
+
+
+resource rIcon (1) {
+	$8000, // iconType
+	$000A, // icon Height in pixels
+	$0014, // icon Width in pixels
+
+	// Icon Image
+	$"FFF0FFCFFFFFF03F00FF" 
+	$"FFC3FC0FFFFF000C00FF" 
+	$"FF0FF03FFFFF000C003F" 
+	$"FC3FF0FFFFFF000C003F" 
+	$"F003C00FFFFF000C003F" 
+	$"F000C003FFFFC00F003F" 
+	$"F000C003FFFFFC3FF0FF" 
+	$"F000C003FFFFF0FFC3FF" 
+	$"FC00C003FFFFC0FF0FFF" 
+	$"FC03F00FFFFFCFFC3FFF",
+
+	// Icon Mask
+	$"000F00F000000FF0FF00" 
+	$"00FF0FF00000FFFFFF00" 
+	$"00F00FF00000FFFFFFF0" 
+	$"0FF00F000000FFFFFFF0" 
+	$"0FFFFFF00000FFFFFFF0" 
+	$"0FFFFFFF0000FFF0FFF0" 
+	$"0FFFFFFF00000FF00F00" 
+	$"0FFFFFFF00000F00FF00" 
+	$"0FFFFFFF0000FF00F000" 
+	$"0FFF0FF00000F00FF000"
+};
+
+
+// config window
+
+
+resource rWindParam1 (rConfigWindow) {
+	0x20A0,
+	0x0,
+	0x0,
+	{0, 0, 0, 0},
+	0x0,
+	{0, 0},
+	{0, 0},
+	{0, 0},
+	{0, 0},
+	{0, 0},
+	0x0,
+	0,
+	{70, 170, 70 + ConfigWindowHeight, 170 + ConfigWindowWidth},
+	infront,
+	rConfigWindow,
+	0x9
+};
+
+
+resource rControlList (rConfigWindow) {
+	{
+		CtrlPathStat,
+		CtrlPath,
+		CtrlBrowse,
+		CtrlCancel,
+		CtrlOk,
+	}
+};
+
+resource rControlTemplate (CtrlPathStat) {
+	CtrlPathStat,
+	{6, 10, 15, ConfigWindowWidth - 110},
+	statTextControl {
+		 {	/* optional Fields */
+			fBlastText,
+			FctlProcNotPtr + RefIsResource,
+			0x0,
+			CtrlPathStat,
+			0,
+			leftJust
+		}
+	}
+};
+
+resource rControlTemplate (CtrlBrowse) {
+	CtrlBrowse,
+	{4, ConfigWindowWidth - 100, 17, ConfigWindowWidth - 10},
+	SimpleButtonControl {
+		 {	/* optional Fields */
+			NormalButton,
+			FCtlWantEvents + FctlProcNotPtr + RefIsResource,
+			0x0,
+			CtrlBrowse,
+			0x0,
+			{
+				"B",
+				"b",
+				0x0100,
+				0x0100
+			}
+		}
+	}
+};
+
+
+resource rControlTemplate (CtrlPath) {
+	CtrlPath,
+	{19, 10, 28, ConfigWindowWidth - 10},
+	statTextControl {
+		 {	/* optional Fields */
+			fBlastText + fSquishText,
+			FctlProcNotPtr + RefIsResource,
+			0x0,
+			CtrlPath,
+			0,
+			leftJust
+		}
+	}
+};
+
+
+resource rControlTemplate (CtrlCancel) {
+	CtrlCancel,
+	{35, 10, 48, 100},
+	SimpleButtonControl {
+		 {	/* optional Fields */
+			NormalButton,
+			FCtlWantEvents + FctlProcNotPtr + RefIsResource,
+			0x0,
+			CtrlCancel,
+			0x0,
+			{
+				"\0x1B",
+				"\0x1B",
+				0x0,
+				0x0
+			}
+		}
+	}
+};
+
+resource rControlTemplate (CtrlOk) {
+	CtrlOk,
+	{35, ConfigWindowWidth - 100, 48, ConfigWindowWidth - 10},
+	SimpleButtonControl {
+		 {	/* optional Fields */
+			DefaultButton,
+			FCtlWantEvents + FctlProcNotPtr + RefIsResource,
+			0x0,
+			CtrlOk,
+			0x0,
+			{	
+				"\n",
+				"\n",
+				0x0,
+				0x0
+			}
+		}
+	}
+};
+
+resource rPString (CtrlBrowse) {
+	"Browse"
+};
+
+resource rPString (CtrlOk) {
+	"Ok"
+};
+
+resource rPString (CtrlCancel) {
+	"Cancel"
+};
+
+
+resource rTextForLETextBox2(CtrlPathStat)
+{
+	"Quote File:"
+};
+
+resource rTextForLETextBox2(CtrlPath)
+{
+	""
+};
