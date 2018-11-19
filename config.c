@@ -10,8 +10,7 @@
 #include <stdfile.h>
 #include <window.h>
 
-
-#include <kstring.h>
+#include <string.h>
 
 #include "qserver.h"
 
@@ -136,7 +135,7 @@ Handle newPath = NULL;
 
   oldPort = GetPort();
 
-  memzero(&event, sizeof(event));
+  memset(&event, 0, sizeof(event));
   event.wmTaskMask = 0x001f0004;
 
   win = NewWindow2(NULL, NULL, NULL, NULL,

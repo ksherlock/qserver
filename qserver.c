@@ -21,7 +21,7 @@
 #include <TCPIP.h>
 #include <misctool.h>
 
-#include <kstring.h>
+#include <stdio.h>
 
 #include "qserver.h"
 
@@ -81,7 +81,7 @@ void fixstats(void)
 static char stats[16];
 Word i;
 
-  i = ksprintf(stats + 1, "%D : %D", current, total);
+  i = sprintf(stats + 1, "%u : %u", current, total);
   stats[0] = i; // pascal string
 
   SetInfoRefCon((LongWord)stats, MyWindow);
@@ -234,7 +234,7 @@ int i;
 				TCPIPConvertIPToASCII(srBuffer.srDestIP,
 					buffer, 0);
 
-				j = ksprintf(line, "%p:%D\r",
+				j = sprintf(line, "%p:%u\r",
 				  buffer, srBuffer.srDestPort);
 				
 				InsertString(j, line);
@@ -253,6 +253,7 @@ int i;
 word oFile;
 word oDepth;
 static char err[256];
+GSString255 *path;
 
 	total = current = 0;
 
@@ -262,11 +263,13 @@ static char err[256];
           return false;
         }
 	HLock(rPath);
+  path = *(GSString255 **)rPath;
 
-        rFile = OpenResourceFile(readEnable, NULL, (pointer)*rPath);
+        rFile = OpenResourceFile(readEnable, NULL, (pointer)path);
 	if (_toolErr)
 	{
-          InsertString(ksprintf(err, "Fatal: Unable to open %g\r", *rPath),
+      /* todo */
+          InsertString(sprintf(err, "Fatal: Unable to open %.*s\r", path->length, path->text),
             err);
 	  return false;
 	}
@@ -280,7 +283,8 @@ static char err[256];
 
 	if (!rCount)
 	{
-          InsertString(ksprintf(err, "Fatal: Invalid quote file %g\r", *rPath),
+      /* todo */
+          InsertString(sprintf(err, "Fatal: Invalid quote file %.*s\r", path->length, path->text),
             err);
 
 	  CloseResourceFile(rFile);

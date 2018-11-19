@@ -2,6 +2,10 @@
 #include "qserver.h"
 
 
+#ifndef fSquishText
+#define fSquishText $0010
+#endif
+
 //#define	WaitCodeRID		0x00700000
 //read rCtlDefProc (WaitCodeRID, fixed, convert) "waitctrl";
 
