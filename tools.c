@@ -34,6 +34,9 @@ Integer Math.
 #include <memory.h>
 #include <intmath.h>
 
+extern pascal Word GetMasterSCB(void) inline(0x1704,dispatcher);
+
+
 extern pascal void ListStartUp(void) inline(0x021C,dispatcher);
 extern pascal void ListShutDown(void) inline(0x031C,dispatcher);
 extern pascal Word ListVersion(void) inline(0x041C,dispatcher);
@@ -81,16 +84,31 @@ extern pascal void MCShutDown(void) inline(0x0326,dispatcher);
 extern pascal Word MCVersion(void) inline(0x0426,dispatcher);
 extern pascal Boolean MCStatus(void) inline(0x0626,dispatcher);
 
-static void DisplayMissing(unsigned tool) {
+static char NullString[] = "\p";
+static char ok[] = "\pContinue";
 
-	static char msg1[] = "\pThis application needs Tool000";
+static unsigned centerX(void) {
+	if (GetMasterSCB() & 0x80) return 180; /* (640-280) */
+	return 20; /* 320 - 280 */
+}
+
+static void ErrorLoading(unsigned tool) {
+
+	static char msg1[] = "\pThis desk accessory needs Tool000";
 	static char msg2[] = "\pin the System:Tools folder.";
-	static char ok[] = "\pContinue";
 
-	Int2Dec(tool, msg1+28, 3, 0);
-	msg1[30] |= 0x10; /* ' ' -> '0' */
-	TLMountVolume(0, 0, msg1, msg2, NULL, ok);
+	Int2Dec(tool, msg1+31, 3, 0);
+	msg1[31] |= 0x10; /* ' ' -> '0' */
+	TLMountVolume(centerX(), 67, msg1, msg2, ok, ok);
+}
 
+void ErrorStarting(unsigned tool) {
+
+	static char msg1[] = "\pError starting Tool000";
+
+	Int2Dec(tool, msg1+20, 3, 0);
+	msg1[20] |= 0x10; /* ' ' -> '0' */
+	TLMountVolume(centerX(), 67, msg1, NullString, ok, ok);
 }
 
 unsigned NDAStartUpTools(Word memID, StartStopRecord *ssRef) {
@@ -99,6 +117,7 @@ unsigned NDAStartUpTools(Word memID, StartStopRecord *ssRef) {
 	unsigned dp = 0;
 	unsigned char *dptr = 0;
 	unsigned errors = 0;
+
 
 	ssRef->resFileID = 0;
 	ssRef->dPageHandle = 0;
@@ -191,7 +210,7 @@ unsigned NDAStartUpTools(Word memID, StartStopRecord *ssRef) {
 
 		LoadOneTool(tn, version);
 		if (_toolErr) {
-			DisplayMissing(tn);
+			ErrorLoading(tn);
 
 			tn |= 0x4000;
 			ssRef->theTools[i].toolNumber = tn;
@@ -221,7 +240,7 @@ unsigned NDAStartUpTools(Word memID, StartStopRecord *ssRef) {
 				break;
 
 			case 0x1b:
-				if (FMStatus() && !_toolErr) tn |= 0x8000;
+				FMStartUp(memID, (Word)dptr);
 				dptr += 0x0100;
 				break;
 
@@ -250,6 +269,7 @@ unsigned NDAStartUpTools(Word memID, StartStopRecord *ssRef) {
 				break;
 		}
 		if (_toolErr) {
+			ErrorStarting(tn);
 			++errors;
 			tn |= 0x2000;
 		} else {

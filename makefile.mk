@@ -1,7 +1,7 @@
 #for use with GNO/dmake(1)
 
 CFLAGS	+=  $(DEFINES) -v #-O
-OBJS	= qserver.o macroman.o common.o config.o
+OBJS	= qserver.o macroman.o common.o config.o tools.o
 
 qserver: $(OBJS)  qserver.r
 	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $@
@@ -14,6 +14,7 @@ config.o: config.c qserver.h
 macroman.o: macroman.c macroman.h
 qserver.o: qserver.c qserver.h
 qserver.r: qserver.rez qserver.h
+tools.o : tools.c
 
 
 clean:
