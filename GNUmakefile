@@ -4,7 +4,7 @@ CC = occ
 CHTYP = iix chtyp
 COPYFORK = iix copyfork
 LDFLAGS =
-LDLIBS = 
+LDLIBS = -M
 CFLAGS	+=  $(DEFINES) -v #-O
 OBJS	= qserver.a macroman.a common.a config.a tools.a
 
