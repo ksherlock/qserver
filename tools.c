@@ -33,6 +33,9 @@ Integer Math.
 #include <locator.h>
 #include <memory.h>
 #include <intmath.h>
+#include <resources.h>
+#include <gsos.h>
+#include <loader.h>
 
 extern pascal Word GetMasterSCB(void) inline(0x1704,dispatcher);
 
@@ -117,6 +120,7 @@ unsigned NDAStartUpTools(Word memID, StartStopRecord *ssRef) {
 	unsigned dp = 0;
 	unsigned char *dptr = 0;
 	unsigned errors = 0;
+	unsigned level = 0;
 
 
 	ssRef->resFileID = 0;
@@ -326,3 +330,76 @@ void NDAShutDownTools(StartStopRecord *ssRef){
 		DisposeHandle(ssRef->dPageHandle);
 
 }
+
+
+typedef struct NDAResourceCookie {
+	Word oldPrefs;
+	Word oldRApp;
+	Word resFileID;
+} NDAResourceCookie;
+
+/*
+ * Open the resource fork.
+ *
+ */
+Word NDAResourceStartUp(Word memID, Word access, NDAResourceCookie *cookie) {
+
+    Pointer myPath;
+    LevelRecGS levelDCB;
+    SysPrefsRecGS prefsDCB;
+    Word resFileID;
+    Word oldLevel;
+
+	cookie->oldPrefs = 0;
+	cookie->resFileID = 0;
+
+	cookie->oldRApp = GetCurResourceApp();
+
+    levelDCB.pCount = 2;
+    GetLevelGS(&levelDCB);
+    oldLevel = levelDCB.level;
+    levelDCB.level = 0;
+    SetLevelGS(&levelDCB);
+    levelDCB.level = oldLevel;
+
+    prefsDCB.pCount = 1;
+    GetSysPrefsGS(&prefsDCB);
+    cookie->oldPrefs = prefsDCB.preferences;
+    prefsDCB.preferences = (prefsDCB.preferences & 0x1fff) | 0x8000;
+    SetSysPrefsGS(&prefsDCB);
+
+    ResourceStartUp(memID);
+    myPath = LGetPathname2(memID, 1);
+    resFileID = OpenResourceFile(access, NULL, myPath);
+    if (_toolErr) {
+    	ResourceShutDown();
+    	resFileID = 0;
+    }
+    cookie->resFileID = resFileID;
+
+    SetLevelGS(&levelDCB);
+ 	return resFileID;
+}
+
+/*
+ * restore previous resource app and system preferences.
+ */
+void NDAResourceRestore(NDAResourceCookie *cookie) {
+
+    SysPrefsRecGS prefsDCB;
+
+    prefsDCB.pCount = 1;
+    prefsDCB.preferences = cookie->oldPrefs;
+    SetSysPrefsGS(&prefsDCB);
+
+    SetCurResourceApp(cookie->oldRApp);
+}
+
+/*
+ * close the resource fork.
+ */
+void NDAResourceShutDown(NDAResourceCookie *cookie) {
+	CloseResourceFile(cookie->resFileID);
+	ResourceShutDown();
+}
+
