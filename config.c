@@ -53,7 +53,7 @@ static CreateRecGS CreateDCB = {4, (GSString255Ptr)&folderPath, 0xe3, 0x0f, 0};
   }
   if (t == fileNotFound) // file doesn't exist, create
   {
-    CreateResourceFile(0,0x5A,0,(Pointer)&filePath);
+    CreateResourceFile(0,0x5A,0xe3,(Pointer)&filePath);
     if (_toolErr) return 0;
   }
   else if (t) return 0;
