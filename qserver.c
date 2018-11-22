@@ -425,7 +425,6 @@ pascal void MarinettiCallback(char *str)
     DrawInfoBar(MyWindow);
   }
 }
-#pragma databank 0
 
 pascal void DrawInfo(void *rect, const char *str, GrafPortPtr w)
 {
@@ -443,6 +442,7 @@ void DrawWindow(void)
   DrawControls(GetPort());
 }
 
+#pragma databank 0
 
 
 static StartStopRecord ss = {
