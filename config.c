@@ -119,8 +119,13 @@ Rect r;
   r = (**CtrlHand).ctlRect;
   EraseRect(&r);
 
-  SetCtlValue(gstr->length, CtrlHand);
-  SetCtlTitle(2 + (Pointer)gstr, (Handle)CtrlHand);
+  if (data) {
+    SetCtlValue(gstr->length, CtrlHand);
+    SetCtlTitle(gstr->text, (Handle)CtrlHand);
+  } else {
+    SetCtlValue(0, CtrlHand);
+    SetCtlTitle("", (Handle)CtrlHand);    
+  }
 }
 
 void DoConfig(Word MyID)
@@ -143,8 +148,12 @@ Handle newPath = NULL;
 
   SetPort(win);
   // set the current path text...
-  HLock(rPath);
-  SetText(win, CtrlPath, *rPath);
+  if (rPath) {
+    HLock(rPath);
+    SetText(win, CtrlPath, *rPath);
+  } else {
+    SetText(win, CtrlPath, NULL);
+  }
 
   for (ok = true; ok;)
   {
