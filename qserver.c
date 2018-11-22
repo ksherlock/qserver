@@ -29,6 +29,20 @@
 unsigned NDAStartUpTools(Word memID, StartStopRecord *ssRef);
 void NDAShutDownTools(StartStopRecord *ssRef);
 
+
+
+typedef struct NDAResourceCookie {
+  Word oldPrefs;
+  Word oldRApp;
+  Word resFileID;
+} NDAResourceCookie;
+
+void NDAResourceRestore(NDAResourceCookie *cookie);
+void NDAResourceShutDown(NDAResourceCookie *cookie);
+Word NDAResourceStartUp(Word memID, Word access, NDAResourceCookie *cookie);
+
+
+
 Handle LoadQuote(word mID, Word rfile);
 
 Word LoadConfig(Word MemID);
@@ -45,9 +59,9 @@ const char *ReqName = "\pTCP/IP~kelvin~qserver~";
 WindowPtr MyWindow;
 Boolean FlagTCP;
 Boolean FlagQS;
+Boolean ToolsLoaded;
 
 Word MyID;
-Word MyRID;
 Word Ipid;
 
 
@@ -459,54 +473,31 @@ static StartStopRecord ss = {
 
 };
 
+static NDAResourceCookie resInfo;
 
 
 GrafPortPtr NDAOpen(void)
 {
-Boolean ok  = true;
-const char *err = NULL;
 
-  if (NDAStartUpTools(MyID, &ss)) {
-    NDAShutDownTools(&ss);
-    return NULL;
+  MyWindow = NULL;
+
+  if (!ToolsLoaded) {
+    if (NDAStartUpTools(MyID, &ss)) {
+      NDAShutDownTools(&ss);
+      return NULL;
+    }
+    ToolsLoaded = true;
   }
 
-  LoadConfig(MyID);
 
   // Check if Marinetti Active.
   FlagTCP = TCPIPGetConnectStatus();
 
 
-  if (ok)
-  {
-    Pointer myPath;
-    Word oldLevel;
-    Word oldPrefs;
-    Word oldRApp; 
-    LevelRecGS levelDCB;
-    SysPrefsRecGS prefsDCB;
-    Handle H;
+  if (NDAResourceStartUp(MyID, readEnable, &resInfo)) {
 
-    // load our resource. -- see TN.iigs #71
-    oldRApp = GetCurResourceApp();
-    ResourceStartUp(MyID);
-    myPath = LGetPathname2(MyID, 1);
+    LoadConfig(MyID);
 
-    levelDCB.pCount = 2;
-    GetLevelGS(&levelDCB);
-    oldLevel = levelDCB.level;
-    levelDCB.level = 0;
-    SetLevelGS(&levelDCB);
-
-    prefsDCB.pCount = 1;
-    GetSysPrefsGS(&prefsDCB);
-    oldPrefs = prefsDCB.preferences;
-    prefsDCB.preferences = (prefsDCB.preferences & 0x1fff) | 0x8000;
-    SetSysPrefsGS(&prefsDCB);
-
-    MyRID = OpenResourceFile(readEnable, NULL, myPath);
-
-    //
     MyWindow = NewWindow2(NULL, 0, DrawWindow, NULL,
       refIsResource, rQSWindow, rWindParam1);
 
@@ -520,19 +511,10 @@ const char *err = NULL;
     ShowWindow(MyWindow);
     SelectWindow(MyWindow);
 
-    //
-    prefsDCB.preferences = oldPrefs;
-    SetSysPrefsGS(&prefsDCB);
-
-    levelDCB.level = oldLevel;
-    SetLevelGS(&levelDCB);
-
-    SetCurResourceApp(oldRApp);
-
-    return MyWindow;
   }
-  return NULL;
 
+  NDAResourceRestore(&resInfo);
+  return MyWindow;
 }
 
 void NDAClose(void)
@@ -541,12 +523,12 @@ void NDAClose(void)
 
     if (FlagQS) StopServer();
 
+    AcceptRequests(ReqName, MyID, NULL);
     CloseWindow(MyWindow);
     MyWindow = NULL;
-    AcceptRequests(ReqName, MyID, NULL);
+
     UnloadConfig();
-    CloseResourceFile(MyRID);
-    ResourceShutDown();
+    NDAResourceShutDown(&resInfo);
 }
 
 void NDAInit(Word code)
@@ -556,14 +538,16 @@ void NDAInit(Word code)
     MyWindow = NULL;
     FlagTCP = false;
     FlagQS = false;
+    ToolsLoaded = false;
 
     MyID = MMStartUp();
     Ipid = 0;
-    MyRID = 0;
   }
   else
   {
-    NDAShutDownTools(&ss);
+    if (ToolsLoaded)
+      NDAShutDownTools(&ss);
+    ToolsLoaded = false;
   }
 }
 
