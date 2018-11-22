@@ -10,45 +10,42 @@
 #define FLAG_CONNECTED 4
 #define FLAG_ERROR 0xffff
 
-void stopMarinetti(int flag)
-{
-  if (flag == FLAG_ERROR) return;
-  if (flag == 0) return;
-  if (flag & FLAG_CONNECTED)
-  {
+void stopMarinetti(int flag) {
+  if (flag == FLAG_ERROR)
+    return;
+  if (flag == 0)
+    return;
+  if (flag & FLAG_CONNECTED) {
     TCPIPDisconnect(0, 0);
-    if (_toolErr) return;
+    if (_toolErr)
+      return;
   }
-  if (flag & FLAG_STARTED) TCPIPShutDown();
-  if (flag & FLAG_LOADED) UnloadOneTool(0x36);
+  if (flag & FLAG_STARTED)
+    TCPIPShutDown();
+  if (flag & FLAG_LOADED)
+    UnloadOneTool(0x36);
 }
-
-
 
 /*
  * do the various steps to start up marinetti.
  */
-int startMarinetti(void)
-{
-int flag = 0;
+int startMarinetti(void) {
+  int flag = 0;
 
   TCPIPStatus();
-  if (_toolErr)
-  {
-    LoadOneTool(0x36, 0x0200); //load Marinetti
-    if (_toolErr) return FLAG_ERROR;
+  if (_toolErr) {
+    LoadOneTool(0x36, 0x0200); // load Marinetti
+    if (_toolErr)
+      return FLAG_ERROR;
     flag |= FLAG_LOADED;
   }
-  if (!TCPIPStatus())
-  {
+  if (!TCPIPStatus()) {
     TCPIPStartUp();
     flag |= FLAG_STARTED;
   }
-  if (!TCPIPGetConnectStatus())
-  {
+  if (!TCPIPGetConnectStatus()) {
     TCPIPConnect(0);
-    if (_toolErr)
-    {
+    if (_toolErr) {
       stopMarinetti(flag);
       return FLAG_ERROR;
     }
@@ -57,17 +54,3 @@ int flag = 0;
 
   return flag;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-                          

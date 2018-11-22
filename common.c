@@ -2,9 +2,9 @@
 #pragma lint -1
 #pragma optimize -1
 
+#include <IntMath.h>
 #include <Memory.h>
 #include <Resources.h>
-#include <IntMath.h>
 #include <texttool.h>
 
 #include "macroman.h"
@@ -23,160 +23,148 @@ char tmp[6];
 }
 #endif
 
+extern pascal Word Random(void) inline(0x8604, dispatcher);
 
-extern pascal Word Random(void) inline(0x8604,dispatcher);
+Handle LoadQuote(word mID, Word rFile) {
+  Word oFile;
+  Word oDepth;
 
-Handle LoadQuote(word mID, Word rFile)
-{
-Word oFile;
-Word oDepth;
+  int rID;
+  Word rCount;
 
-int rID;
-Word rCount;
+  Handle rHandle;
+  Handle h;
 
-Handle rHandle;
-Handle h;
+  h = NULL;
 
+  oFile = GetCurResourceFile();
+  SetCurResourceFile(rFile);
+  oDepth = SetResourceFileDepth(1);
+  rCount = CountResources(rTextForLETextBox2);
 
-	h = NULL;
+  // printint("rCount: ", rCount);
 
-	oFile = GetCurResourceFile();
-	SetCurResourceFile(rFile);
-	oDepth = SetResourceFileDepth(1);
-	rCount = CountResources(rTextForLETextBox2);
+  if (rCount) {
+    WordDivRec wdr;
+    longword index;
 
-	//printint("rCount: ", rCount);
+    wdr = UDivide(Random(), (word)rCount);
 
-	if (rCount)
-	{
-	WordDivRec wdr;
-	longword index;
+    // printint("remainder: ", wdr.remainder);
 
-	  wdr = UDivide(Random(), (word)rCount);
+    index = GetIndResource(rTextForLETextBox2, wdr.remainder + 1);
 
-	//printint("remainder: ", wdr.remainder);
+    // todo - repeat above until index out of range
+    // printint("index: ", index);
 
-	  index = GetIndResource(rTextForLETextBox2, wdr.remainder + 1);
+    rHandle = LoadResource(rTextForLETextBox2, index);
+    // printint("loadres: ", _toolErr);
+    if (!_toolErr) {
+      word oldLen;
+      word newLen;
+      char *newText;
+      char *oldText;
 
-	// todo - repeat above until index out of range
-	//printint("index: ", index);
+      word len;
+      word i;
 
+      oldLen = (word)GetHandleSize(rHandle);
+      // printint("oldLen: ", oldLen);
 
-	  rHandle = LoadResource(rTextForLETextBox2, index);
-	//printint("loadres: ", _toolErr);
-	  if (!_toolErr)
-	  {
-	    word oldLen;
-	    word newLen;
-	    char *newText;
-	    char *oldText;
+      h = NewHandle(oldLen << 2 + 2, mID, 0, NULL);
+      if (!_toolErr) {
+        HLock(h);
+        HLock(rHandle);
 
-	    word len;
-	    word i;
+        oldText = *rHandle;
+        newText = *h;
+        newLen = 0;
 
-	    oldLen = (word)GetHandleSize(rHandle);
-	//printint("oldLen: ", oldLen);
+        i = 0;
+        while (i < oldLen) {
+          char c;
 
-	    h = NewHandle(oldLen << 2 + 2, mID, 0, NULL);
-	    if (!_toolErr)
-	    {
-	      HLock(h);
-	      HLock(rHandle);
+          c = *oldText++;
+          i++;
 
-	      oldText = *rHandle;
-	      newText = *h;
-	      newLen = 0;
+          if (c == '\r') {
+            *((Word *)newText) = 0x0A0D;
+            newText += 2;
+            newLen += 2;
+            continue;
 
-	      i = 0;
-	      while (i < oldLen)
-	      {
-	      char c;
+            //*newText++ = '\r';
+            //*newText++ = '\n';
+            // newLen += 2;
+            // continue;
+          }
+          if (c == 0x01) // formatting codes.
+          {
+            c = *oldText;
+            switch (c) {
+            case 'F': // font
+              oldText += 5;
+              i += 5;
+              break;
 
-		c  = *oldText++;
-		i++;
+            case 'S': // set style
+              oldText += 5;
+              i += 4;
+              break;
 
-		if (c == '\r')
-		{
-		  *((Word *)newText) = 0x0A0D;
-                  newText += 2;
-		  newLen += 2;
-		  continue;
+            case 'C': // fore color
+            case 'B': // back color
+            case 'J': // justify
+            case 'L': // left margin
+            case 'R': // right margin
+            case 'X': // extra space
+              oldText += 3;
+              i += 3;
+              break;
+            }
+            continue;
+          }
+          if (c & 0x80) // macroman encoding.
+          {
+            int j;
+            c &= 0x7f;
+            j = macroman[c].length;
 
-			//*newText++ = '\r';
-			//*newText++ = '\n';
-			//newLen += 2;
-			//continue;
-		}
-	        if (c == 0x01) // formatting codes.
-		{
-		  c = *oldText;
-		  switch (c)
-		  {
-		  case 'F': // font
-			oldText += 5;
-			i += 5;
-			break;
+            if (j == 0)
+              continue;
 
-		  case 'S': // set style
-			oldText += 5;
-			i += 4;
-			break;
+            if (j > 1) {
+              char *cp;
+              cp = macroman[c].cp;
 
-		  case 'C': // fore color
-		  case 'B': // back color
-		  case 'J': // justify
-		  case 'L': // left margin
-		  case 'R': // right margin
-		  case 'X': // extra space
-			oldText += 3;
-			i += 3;
-			break;
-		  }
-		  continue;
-		}
-		if (c & 0x80) // macroman encoding.
-		{
-		int j;
-		  c &= 0x7f;
-		  j = macroman[c].length;
+              newLen += j;
+              do {
+                *newText++ = *cp++;
+              } while (--j);
 
-		  if (j == 0) continue;
+              continue;
+            } else
+              c = (char)macroman[c].cp;
+          }
 
-		  if (j > 1)
-		  {
-		  char *cp;
-		    cp = macroman[c].cp;
+          newLen++;
+          *newText++ = c;
+        }
 
-		    newLen += j;
-		    do
-		    {
-		      *newText++ = *cp++;
-		    }
-		    while (--j);
+        //*newText++ = '\r';
+        //*newText++ = '\n';
+        *((Word *)newText) = 0x0A0D;
+        newLen += 2;
+        HUnlock(h);
+        SetHandleSize(newLen, h);
+      }
 
-		    continue;
-		  }
-		  else c = (char)macroman[c].cp;
-		}
+      HUnlock(rHandle);
+      ReleaseResource(0, rTextForLETextBox2, index);
+    }
+  }
+  SetCurResourceFile(oFile);
+  SetResourceFileDepth(oDepth);
 
-		newLen++;
-		*newText++ = c;
-	      }
-
-	      //*newText++ = '\r';
-	      //*newText++ = '\n';
-	      *((Word *)newText) = 0x0A0D;
-	      newLen += 2;
-	      HUnlock(h);
-	      SetHandleSize(newLen, h);
-	    }
-
-	    HUnlock(rHandle);
-	    ReleaseResource(0, rTextForLETextBox2, index);
-	  }
-	}
-	SetCurResourceFile(oFile);
-	SetResourceFileDepth(oDepth);
-
-	return h;
+  return h;
 }
