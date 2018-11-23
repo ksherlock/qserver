@@ -209,7 +209,7 @@ void QServer(void) {
 
           TCPIPConvertIPToASCII(srBuffer.srDestIP, buffer, 0);
 
-          j = sprintf(line, "%p:%u\r", buffer, srBuffer.srDestPort);
+          j = sprintf(line, "%b:%u\r", buffer, srBuffer.srDestPort);
 
           InsertString(j, line);
 
