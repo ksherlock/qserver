@@ -165,9 +165,9 @@ void QServer(void) {
       } else {
         TCPIPWriteTCP(ipid, "Your quote here!\r\n", 18, false, false);
       }
-    }
       queue[i].state = STATE_SEND;
       break;
+    }
 
     case STATE_SEND:
 
